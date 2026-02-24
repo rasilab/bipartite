@@ -27,6 +27,7 @@ Examine the repository to determine what checks apply:
 |-----------|--------------|---------------|
 | `workflow/*.smk` or `Snakefile` | Snakemake pipeline | `snakemake-pipeline-expert` |
 | `*.py` files in `src/` or project root | Python project | `clean-code-reviewer` |
+| `build.zig` or `*.zig` files in `src/` | Zig project | `zig-code-reviewer` |
 | `go.mod` | Go project | `clean-code-reviewer` |
 | `package.json` | Node.js project | `clean-code-reviewer` |
 
@@ -80,6 +81,7 @@ Detect and run available quality tools:
 | `pixi.toml` | Use `pixi run` prefix |
 | `pyproject.toml` with ruff | `ruff check .` |
 | `Makefile` with `check` target | `make check` |
+| `build.zig` | `zig build test` and `zig fmt --check src/ tests/` |
 | `go.mod` | `go test ./...` and `go vet ./...` |
 | `Snakefile` | `snakemake --lint` |
 | `tests/` directory | `pytest` (or project-specific test command) |
