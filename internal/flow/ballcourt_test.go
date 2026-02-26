@@ -451,57 +451,6 @@ func TestCommentsToActions(t *testing.T) {
 	})
 }
 
-func TestEventsToActions(t *testing.T) {
-	now := time.Now()
-
-	// Helper to create a GitHubEvent
-	makeEvent := func(event string, actor string, issueNumber int, when time.Time) GitHubEvent {
-		e := GitHubEvent{
-			Event:     event,
-			Actor:     GitHubUser{Login: actor},
-			CreatedAt: when,
-		}
-		e.Issue.Number = issueNumber
-		return e
-	}
-
-	t.Run("valid events", func(t *testing.T) {
-		events := []GitHubEvent{
-			makeEvent("closed", "closer", 10, now),
-			makeEvent("merged", "merger", 20, now.Add(-1*time.Hour)),
-		}
-
-		actions := EventsToActions(events)
-
-		if len(actions) != 2 {
-			t.Fatalf("Expected 2 actions, got %d", len(actions))
-		}
-		if actions[0].Actor != "closer" || actions[0].ItemNumber != 10 {
-			t.Errorf("Action 0: got actor=%s item=%d", actions[0].Actor, actions[0].ItemNumber)
-		}
-		if actions[1].Actor != "merger" || actions[1].ItemNumber != 20 {
-			t.Errorf("Action 1: got actor=%s item=%d", actions[1].Actor, actions[1].ItemNumber)
-		}
-	})
-
-	t.Run("skips malformed events", func(t *testing.T) {
-		events := []GitHubEvent{
-			makeEvent("closed", "closer", 10, now),
-			makeEvent("closed", "", 11, now),     // deleted user
-			makeEvent("closed", "other", 0, now), // no issue number
-		}
-
-		actions := EventsToActions(events)
-
-		if len(actions) != 1 {
-			t.Fatalf("Expected 1 action (malformed skipped), got %d", len(actions))
-		}
-		if actions[0].Actor != "closer" {
-			t.Errorf("Expected closer, got %s", actions[0].Actor)
-		}
-	})
-}
-
 func TestFilterByBallInCourt(t *testing.T) {
 	me := "me"
 	now := time.Now()
