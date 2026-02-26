@@ -154,18 +154,10 @@ func runCheckin(cmd *cobra.Command, args []string) {
 			}
 		}
 
-		// Fetch issue events - warn but continue on error (degraded filtering is better than failure)
-		issueEvents, err := flow.FetchIssueEvents(repo, since)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: failed to fetch issue events for %s: %v\n", repo, err)
-			fmt.Fprintln(os.Stderr, "Ball-in-court filtering may be incomplete (close/merge events not considered).")
-			issueEvents = nil // Continue with empty slice
-		}
-
 		// Convert to unified actions for ball-in-court filtering.
-		// Start with since-window comments + events.
+		// Only comments and reviews drive ball-in-court logic;
+		// close/merge events are administrative, not conversational.
 		allActions := flow.CommentsToActions(allComments)
-		allActions = append(allActions, flow.EventsToActions(issueEvents)...)
 
 		// Apply ball-in-my-court filtering if enabled
 		if githubUser != "" {
