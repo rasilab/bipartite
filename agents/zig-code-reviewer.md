@@ -77,7 +77,7 @@ Zig's comptime is for computing values and types at compile time:
 
 ## 6. Idiomatic Zig
 
-- **Naming**: snake_case for functions/variables, PascalCase for types, SCREAMING_SNAKE for comptime constants. Names should reveal intent
+- **Naming**: snake_case for functions/variables, PascalCase for types, SCREAMING_SNAKE for comptime constants. Names should reveal intent. Flag over-generic file names like `shared.zig`, `utils.zig`, `helpers.zig` — prefer names that say *what* is shared (e.g., `alignment_scores.zig`, `band_constraints.zig`). Apply the same standard to struct and function names: `State` or `Context` alone is too vague when a more specific name exists
 - **Exhaustive switches**: Prefer exhaustive `switch` over `else =>` — compiler catches missing variants on enum changes
 - **Optional chaining**: Prefer `if (maybe_val) |val|` over `.?` for values that are legitimately optional
 - **Sentinel-terminated slices**: Use `[:0]const u8` for C interop strings, `[]const u8` otherwise
