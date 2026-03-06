@@ -83,9 +83,13 @@ EPIC STATUS PROTOCOL — You MUST follow this:
 Phases: exploring, coding, testing, blocked, completed
 
 BRANCH: Create branch <N>-<short-name> from main.
+AUTONOMY: Do the work. Do not ask the user whether to proceed with
+implementation steps, run experiments, or set up tests — just do them.
+If you hit an actual blocker, update .epic-status.json with phase
+"blocked" and stop.
+
 COMPLETION: When done, update .epic-status.json phase to "completed",
-commit your work, and stop. Do NOT push or create a PR — the
-orchestrator session will review first.
+commit your work, and stop. Do NOT push or create a PR.
 
 IMPORTANT CONTEXT:
 <Add issue-specific context here:>
