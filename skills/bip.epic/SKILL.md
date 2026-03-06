@@ -22,7 +22,7 @@ Named by **clone name** (`cedar`, `oak`, etc.), not issue number.
 
 ### Conductor role
 The conductor session stays on `main` and does NOT do feature work.
-It orchestrates: scans, updates EPICs, spawns clones, reviews PRs.
+It orchestrates: scans, updates EPICs, spawns clones.
 
 **Numbered issues → spawn**: If work is tied to a GitHub issue (`iN`),
 always use `/bip.epic.spawn` to assign it to a clone — even if the fix
@@ -54,11 +54,14 @@ Fields:
 
 ## Workflow
 
-### Step 0: Load config
+### Step 0: Load config and memory
 
 ```bash
 cat .epic-config.json
 ```
+
+Also read MEMORY.md from the auto-memory directory for orchestrator
+context from previous sessions (decisions, patterns, what's next).
 
 **If the file does not exist**, stop and ask the user:
 1. Where are your clones? (e.g. `~/re/pz`)
@@ -160,14 +163,14 @@ EPIC issue bodies are the source of truth for project status. Update
 them when findings come in, items complete, or new work starts.
 
 **Local file convention**: Keep a persistent local copy as
-`ISSUE-EPIC-<short-desc>.md` in the repo root (e.g.
-`ISSUE-EPIC-indel-signals.md`, `ISSUE-EPIC-benchmark.md`).
-These files are gitignored via the `ISSUE-*.md` pattern.
+`ISSUE-EPIC-<N>.md` in the repo root (e.g. `ISSUE-EPIC-281.md`,
+`ISSUE-EPIC-295.md`). These files are gitignored via the `ISSUE-*.md`
+pattern.
 
 ```bash
 # Pull current body and record the timestamp
 gh issue view <number> --json body,updatedAt > /tmp/epic-pull.json
-jq -r .body /tmp/epic-pull.json > ISSUE-EPIC-<short-desc>.md
+jq -r .body /tmp/epic-pull.json > ISSUE-EPIC-<N>.md
 PULLED_AT=$(jq -r .updatedAt /tmp/epic-pull.json)
 rm -f /tmp/epic-pull.json
 
@@ -181,7 +184,7 @@ if [ "$PULLED_AT" != "$CURRENT_AT" ]; then
   echo "Re-pull, merge changes, then try again."
   # Stop here — do NOT push
 else
-  gh issue edit <number> --body-file ISSUE-EPIC-<short-desc>.md
+  gh issue edit <number> --body-file ISSUE-EPIC-<N>.md
 fi
 ```
 

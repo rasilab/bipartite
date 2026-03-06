@@ -24,7 +24,13 @@ These are the working copies — edit them locally, then push to GitHub.
 For each `ISSUE-EPIC-*.md` file in the repo root:
 
 1. Extract the issue number from the filename (`ISSUE-EPIC-284.md` → 284)
-2. Push to GitHub:
+2. Conflict check before pushing:
+   ```bash
+   CURRENT_AT=$(gh issue view <number> --json updatedAt -q .updatedAt)
+   ```
+   Compare against the `updatedAt` recorded when the file was last pulled.
+   If it changed, someone else edited — re-pull, merge, and retry.
+3. Push to GitHub:
    ```bash
    gh issue edit <number> --body-file ISSUE-EPIC-<N>.md
    ```
@@ -35,7 +41,7 @@ ensures the local file is the source of truth and survives context resets.
 If editing EPIC bodies mid-session (not just at tuckin), follow the same
 pattern: edit the local `ISSUE-EPIC-<N>.md`, then push with `gh issue edit`.
 
-Report which EPICs were pushed.
+Report which EPICs were pushed (and which were skipped due to conflicts).
 
 ### Step 2: Update clone status files
 
@@ -68,18 +74,15 @@ Update clones the orchestrator has direct knowledge about. This includes:
 Do not guess status for clones with active sessions that may have
 progressed beyond what the orchestrator last observed.
 
-### Step 3: Write MEMORY.md
+### Step 3: Update MEMORY.md (lightweight)
 
-Update the project's `MEMORY.md` (at the auto-memory path) with
-orchestrator-specific context that isn't captured elsewhere:
+Most state should already be in EPIC bodies (`ISSUE-EPIC-<N>.md`) and
+clone status files (`.epic-status.json`). Only update MEMORY.md for
+orchestrator-level context that doesn't fit in those files:
 
-- Decisions made this session and their rationale
-- Patterns noticed (e.g., "clone X is slow", "issue Y depends on Z")
-- Anything the next session should know that isn't in EPIC bodies or
-  status files
-
-**Do not duplicate** information already in EPIC bodies or status files.
-Focus on the "why" and "what's next" that would be lost.
+- Key decisions and their rationale
+- Cross-EPIC patterns or dependencies
+- Things the next session should know that aren't obvious from the files
 
 ### Step 4: Report
 

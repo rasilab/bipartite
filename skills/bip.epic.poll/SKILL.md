@@ -68,17 +68,21 @@ tmux capture-pane -t <clone-name> -p | tail -20
 
 ## After polling
 
-1. **Report**: Summarize what changed — new merges, completed clones,
-   new findings, blockers.
+1. **Status table**: Display the same clone status table as `/bip.epic`
+   Step 4 (clone, branch, status, issue, summary) plus ready issues.
 
-2. **Update EPICs** if needed: Use the EPIC body update pattern from
-   `/bip.epic` (read to temp file, edit, push with `gh issue edit --body-file`).
+2. **Auto-housekeep**:
+   - **Update EPIC bodies** if anything merged/closed since last update
+     (use the EPIC body update pattern from `/bip.epic`)
+   - **Clean up stale clones** (no tmux window, status > 30 min):
+     checkout main, pull, clear `.epic-status.json`
 
-3. **Update memory**: If significant state changes occurred, update
-   `MEMORY.md` (active sessions, dependency chains, key findings).
+3. **Propose spawns**: If idle clones and ready issues exist, propose
+   which issues to spawn where. Wait for user confirmation.
 
-4. **Suggest next actions**: Based on what changed — land PRs, spawn
-   new work, investigate results.
+4. **Update MEMORY.md** only if there's orchestrator-level context not
+   captured in EPIC bodies or `.epic-status.json` files (decisions,
+   patterns, blockers).
 
 ## Conventions
 
