@@ -24,6 +24,12 @@ Named by **clone name** (`cedar`, `oak`, etc.), not issue number.
 The conductor session stays on `main` and does NOT do feature work.
 It orchestrates: scans, updates EPICs, spawns clones, reviews PRs.
 
+**Numbered issues → spawn**: If work is tied to a GitHub issue (`iN`),
+always use `/bip.epic.spawn` to assign it to a clone — even if the fix
+seems trivial. The conductor can do light triage (reading files, checking
+CI output, running `gh` commands) but should not write code or create
+branches for numbered issues.
+
 ## Configuration
 
 The epic skill reads `.epic-config.json` from the repo root. This file
