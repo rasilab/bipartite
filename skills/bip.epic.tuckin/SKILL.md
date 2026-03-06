@@ -39,14 +39,16 @@ Report which EPICs were pushed.
 
 ### Step 2: Update clone status files
 
+Read `clone_root` from `.epic-config.json`.
+
 For each clone the orchestrator interacted with this session:
 
-1. Clone root is `~/re/pz/`
-2. Check if the clone's `.epic-status.json` is stale or missing
-3. If the orchestrator has newer information (e.g., a clone finished,
+1. Check if the clone's `.epic-status.json` is stale or missing
+2. If the orchestrator has newer information (e.g., a clone finished,
    got blocked, or changed phase), update the file:
    ```bash
-   cat > ~/re/pz/<clone>/.epic-status.json << 'EOF'
+   CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
+   cat > "$CLONE_ROOT/<clone>/.epic-status.json" << 'EOF'
    {
      "issue": <N>,
      "title": "<title>",
