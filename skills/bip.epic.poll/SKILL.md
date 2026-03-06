@@ -31,7 +31,7 @@ Note any new PRs or CI status changes.
 ### 3. New issues
 
 ```bash
-gh issue list --sort created --limit 5 --json number,title,state,createdAt
+gh issue list --search "sort:created-desc" --limit 5 --json number,title,state,createdAt
 ```
 
 ### 4. Issue comments
@@ -44,9 +44,11 @@ gh api repos/{owner}/{repo}/issues/{number}/comments --jq '.[-1].body' | head -4
 
 ### 5. Clone status
 
+Read `clone_root` and `clone_names` from `.epic-config.json`:
 ```bash
-for d in ~/re/pz/*/; do
-  [ -f "$d/.epic-status.json" ] && echo "=== $(basename $d) ===" && cat "$d/.epic-status.json"
+CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
+for name in $(jq -r '.clone_names[]' .epic-config.json); do
+  [ -f "$CLONE_ROOT/$name/.epic-status.json" ] && echo "=== $name ===" && cat "$CLONE_ROOT/$name/.epic-status.json"
 done
 ```
 

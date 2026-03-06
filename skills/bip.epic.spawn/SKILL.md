@@ -63,7 +63,7 @@ on the issue — this is where the conductor adds value over a generic
 spawn.
 
 ```
-You are working on GitHub issue #<N> "<title>" in the phyz project.
+You are working on GitHub issue #<N> "<title>".
 
 EPIC STATUS PROTOCOL — You MUST follow this:
 1. At session start, write .epic-status.json (see format below)

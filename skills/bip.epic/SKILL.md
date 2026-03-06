@@ -6,7 +6,7 @@ description: EPIC cold-start dashboard — full scan of clones, GitHub, and EPIC
 # /bip.epic
 
 Full cold-start dashboard for EPIC-based multi-clone orchestration.
-Run from the **conductor clone** (e.g. `~/re/pz/balsa`) inside tmux.
+Run from the **conductor clone** inside tmux.
 
 Use this at **session start** to establish context. For mid-session
 updates, use `/bip.epic.poll`. To spawn work, use `/bip.epic.spawn`.
@@ -31,11 +31,11 @@ is gitignored and must exist before the skill can operate.
 
 ```json
 {
-  "clone_root": "~/re/pz",
-  "clone_names": ["alder", "ash", "balsa", "birch", "cedar", "elm"],
-  "new_clone_names": ["walnut", "cherry", "willow", "juniper", "hemlock"],
-  "github_repo": "matsengrp/phyz",
-  "conductor": "balsa"
+  "clone_root": "~/re/myproject",
+  "clone_names": ["alpha", "beta", "gamma"],
+  "new_clone_names": ["delta", "epsilon", "zeta"],
+  "github_repo": "org/repo",
+  "conductor": "alpha"
 }
 ```
 
