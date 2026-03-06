@@ -18,32 +18,35 @@ session end. Run this when context is getting long or before stopping.
 
 ### Step 1: Push EPIC body edits
 
+EPIC bodies live as `ISSUE-EPIC-<N>.md` files in the repo root (gitignored).
+These are the working copies — edit them locally, then push to GitHub.
+
 For each `ISSUE-EPIC-*.md` file in the repo root:
 
-1. Identify the issue number (check file contents or ask)
-2. Run the `updatedAt` conflict check:
+1. Extract the issue number from the filename (`ISSUE-EPIC-284.md` → 284)
+2. Push to GitHub:
    ```bash
-   CURRENT_AT=$(gh issue view <number> --json updatedAt -q .updatedAt)
+   gh issue edit <number> --body-file ISSUE-EPIC-<N>.md
    ```
-3. If no conflict, push:
-   ```bash
-   gh issue edit <number> --body-file ISSUE-EPIC-<short-desc>.md
-   ```
-4. If conflict detected, warn and skip — do not overwrite
 
-Report which EPICs were pushed and which had conflicts.
+During the session, always edit the local file first, then push. This
+ensures the local file is the source of truth and survives context resets.
+
+If editing EPIC bodies mid-session (not just at tuckin), follow the same
+pattern: edit the local `ISSUE-EPIC-<N>.md`, then push with `gh issue edit`.
+
+Report which EPICs were pushed.
 
 ### Step 2: Update clone status files
 
 For each clone the orchestrator interacted with this session:
 
-1. Read `.epic-config.json` for clone paths
+1. Clone root is `~/re/pz/`
 2. Check if the clone's `.epic-status.json` is stale or missing
 3. If the orchestrator has newer information (e.g., a clone finished,
    got blocked, or changed phase), update the file:
    ```bash
-   CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
-   cat > "$CLONE_ROOT/<clone>/.epic-status.json" << 'EOF'
+   cat > ~/re/pz/<clone>/.epic-status.json << 'EOF'
    {
      "issue": <N>,
      "title": "<title>",
@@ -55,8 +58,13 @@ For each clone the orchestrator interacted with this session:
    EOF
    ```
 
-Only update clones the orchestrator has direct knowledge about — do not
-guess status for clones that have their own active sessions.
+Update clones the orchestrator has direct knowledge about. This includes:
+- Clones whose PRs were merged this session (even if the clone's own
+  session already exited)
+- Clones the orchestrator observed finishing via tmux or poll
+
+Do not guess status for clones with active sessions that may have
+progressed beyond what the orchestrator last observed.
 
 ### Step 3: Write MEMORY.md
 
