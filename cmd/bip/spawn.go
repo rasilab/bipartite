@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -71,6 +72,7 @@ func runSpawn(cmd *cobra.Command, args []string) {
 	var repoPath string
 	if spawnDir != "" {
 		repoPath = mustValidateDir(spawnDir)
+		fmt.Fprintf(os.Stderr, "Using custom directory: %s\n", repoPath)
 	} else {
 		// Validate repo is in sources.yml and has local clone
 		var found bool
@@ -175,11 +177,21 @@ func runAdhocSpawn() {
 }
 
 func mustValidateDir(dir string) string {
-	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-		fmt.Fprintf(os.Stderr, "Error: Directory does not exist: %s\n", dir)
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Could not resolve directory path: %s\n", dir)
 		os.Exit(1)
 	}
-	return dir
+	info, err := os.Stat(abs)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Directory does not exist: %s\n", abs)
+		os.Exit(1)
+	}
+	if !info.IsDir() {
+		fmt.Fprintf(os.Stderr, "Error: Path is not a directory: %s\n", abs)
+		os.Exit(1)
+	}
+	return abs
 }
 
 // spawnWindow validates tmux, checks for duplicates, and creates the window.
