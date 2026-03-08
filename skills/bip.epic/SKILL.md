@@ -206,17 +206,24 @@ Always include the date in the clone assignments header.
 {
   "issue": 281,
   "title": "Short title",
-  "phase": "exploring | coding | testing | pr-review | blocked | completed",
+  "phase": "exploring | coding | testing | quality-gate | pr-review | blocked | completed",
   "summary": "Human-readable one-liner",
   "updated_at": "2026-03-03T14:30:00Z",
   "blockers": [],
-  "remote_run": null
+  "remote_run": null,
+  "quality": null
 }
 ```
 
 - Must be `.gitignored`
 - Stale after 30 minutes with no tmux window
 - `remote_run` optional — set when work dispatched to remote server
+- `quality` optional — set during `quality-gate` phase:
+  ```json
+  {"pr_check": "pass|fail", "pr_review": "pass|fail", "iterations": 2}
+  ```
+  Workers loop `/pr-check` and `/pr-review` until both pass clean.
+  The orchestrator can monitor progress via this field during polling.
 
 ## Error handling
 

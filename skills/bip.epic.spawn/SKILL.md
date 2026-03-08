@@ -89,13 +89,19 @@ If you hit an actual blocker, update .epic-status.json with phase
 "blocked" and stop.
 
 COMPLETION: When done:
-1. Update .epic-status.json phase to "pr-review"
-2. Commit all work and push the branch
-3. Create a PR: gh pr create --title "<title>" --body "Closes #<N>"
-4. Run /pr-check — fix everything it flags
-5. Run /pr-review — fix ALL issues, even minor/advisory ones
-6. Update .epic-status.json phase to "completed"
-7. STOP only if a finding requires genuine user judgment (design
+1. Commit all work and push the branch
+2. Create a PR: gh pr create --title "<title>" --body "Closes #<N>"
+3. Update .epic-status.json phase to "quality-gate"
+4. QUALITY GATE LOOP — repeat until both pass clean:
+   a. Run /pr-check — fix everything it flags, commit and push
+   b. Run /pr-review — fix ALL issues (even minor/advisory), commit and push
+   c. If either flagged issues, go back to (a)
+   Track iterations in .epic-status.json:
+   {"phase":"quality-gate","quality":{"pr_check":"pass|fail","pr_review":"pass|fail","iterations":N}}
+5. When both pass with zero issues:
+   - Update .epic-status.json phase to "completed"
+   - Update quality field to show final pass state
+6. STOP only if a finding requires genuine user judgment (design
    questions, ambiguous requirements, architectural tradeoffs).
    For everything else — formatting, test gaps, docs, naming,
    lint, cruft — just fix it and move on.
