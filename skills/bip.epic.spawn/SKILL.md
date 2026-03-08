@@ -64,13 +64,19 @@ dependencies.
 
 ### Step 4: Compose the prompt
 
-Use the template below. Customize the IMPORTANT CONTEXT section based
-on the issue — this is where the conductor adds value over a generic
-spawn.
+The prompt has two parts: (1) the work instructions passed as the
+initial message to `claude` via `--prompt-file`, and (2) a ralph-loop
+invocation that the worker runs as its first action. The ralph-loop
+prompt is kept SHORT (no special characters) — just a reminder to
+continue. The detailed instructions are already in the conversation
+from the initial message.
 
+**Prompt file** (written by conductor to /tmp/spawn-N.txt):
 ```
-/ralph-loop:ralph-loop --completion-promise 'ISSUE WORK COMPLETE' \
 You are working on GitHub issue #N TITLE.
+
+First, run this command to start the iteration loop:
+/ralph-loop:ralph-loop --completion-promise 'ISSUE WORK COMPLETE' --max-iterations 20 Continue working on the task. Read .epic-status.json and .epic-worklog.md for context. Output ISSUE WORK COMPLETE in promise tags when done.
 
 EPIC STATUS PROTOCOL — You MUST follow this:
 1. At session start, write .epic-status.json (see format below)
