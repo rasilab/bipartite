@@ -112,6 +112,12 @@ BRANCH: Create branch N-short-name from main.
 AUTONOMY: Do the work. Do not ask the user whether to proceed with
 implementation steps, run experiments, or set up tests — just do them.
 
+EXPERIMENTS ARE MANDATORY: If the issue specifies running an experiment,
+benchmark, or analysis, you MUST run it before considering the work done.
+Writing code is not enough — the issue is not complete until every
+experiment described in it has been executed and results collected.
+Do not stop at "code is ready to run" — actually run it.
+
 WORKLOG: Append entries to .epic-worklog.md when:
 - Starting work or reading the issue
 - Changing approach or strategy
