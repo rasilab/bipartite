@@ -177,11 +177,34 @@ Now read the issue and begin work:
 
 ### Common context additions
 
-**For experiments (Snakemake workflows):**
+**Filesystem mode** — always include this block when the issue involves running jobs on remote compute nodes. Check `shared_filesystem` in `.epic-config.json`:
+
+*When `shared_filesystem: false` (laptop — files must be synced):*
 ```
 - Use make remote-sync + make remote-tmux for running on remote servers
 - Use /bip.scout to find an available server before remote operations
 - Always rebuild after sync: make remote-tmux REMOTE_HOST=... CMD='zig build -Doptimize=ReleaseFast'
+- Wrap the experiment in a Snakemake workflow
+```
+
+*When `shared_filesystem: true` (NFS — files already visible on all nodes):*
+```
+- Use /bip.scout to find an available server before remote operations
+- For short/medium jobs (< ~30 min): block on SSH
+    ssh <host> "cd <absolute_clone_path> && <command>"
+  Results appear on NFS immediately — no sync or polling needed.
+- For long jobs (hours): background the SSH call, then poll local NFS paths
+    ssh <host> "cd <absolute_clone_path> && nohup <command> > out.log 2>&1 &"
+  Use the awaiting-results phase with check_files pointing to local NFS
+  output paths — no SSH needed to poll, just test -f /nfs/path/output.
+- Never use make remote-sync or make remote-tmux in NFS mode.
+- Use the absolute clone path in SSH commands (expand ~ from clone_root
+  before embedding — remote shells resolve ~ relative to the SSH user's
+  home, which may differ from the NFS path).
+```
+
+**For experiments (Snakemake workflows):**
+```
 - SSF143587 data is at ~/re/superfamily-pcp/results/SSF143587/
 - Wrap the experiment in a Snakemake workflow
 ```

@@ -53,6 +53,7 @@ Fields:
 - **github_repo**: `org/repo` for `gh` commands
 - **conductor**: Which clone is the orchestrator (stays on main)
 - **max_lead_iterations**: Max issue-lead evaluations before escalating to `needs-human` (default: 8)
+- **shared_filesystem**: (optional, default `false`) Set to `true` when the conductor and all compute nodes share an NFS filesystem; the conductor composes direct SSH execution commands instead of `make remote-sync` calls, and experiment results are immediately visible on local NFS paths. Each machine sets this flag for itself — no central list of NFS nodes is needed.
 
 ## Workflow
 
@@ -70,6 +71,7 @@ context from previous sessions (decisions, patterns, what's next).
 2. What are the clone directory names?
 3. What is the GitHub repo (`org/repo`)?
 4. Which clone is the conductor?
+5. Are the conductor and compute nodes on a shared NFS filesystem? (sets `shared_filesystem`)
 
 Then create `.epic-config.json` with their answers and proceed.
 
