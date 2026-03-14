@@ -108,10 +108,8 @@ If this fails, report the problem and continue with stale state.
 ### Step 1: Discover EPIC issues
 
 ```bash
-gh issue list --label EPIC --json number,title,body
+gh issue list --search "EPIC in:title" --json number,title,body
 ```
-
-Fallback: `gh issue list --search "EPIC: in:title" --json number,title,body`
 
 Parse the **Status dashboard** section from each EPIC body to extract
 completed, active, and blocked items.
