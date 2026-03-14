@@ -11,7 +11,14 @@ const transcript = input.transcript_path;
 const model = input.model || {};
 const name = `\x1b[95m${String(model.display_name ?? "")}\x1b[0m`.trim();
 const cwd = input.workspace?.current_dir || input.cwd || process.cwd();
-const CONTEXT_WINDOW = 200_000;
+// Map model identifiers to context window sizes
+function getContextWindow(model) {
+  const id = String(model?.model_id || model?.display_name || "").toLowerCase();
+  if (id.includes("1m") || id.includes("1000k")) return 1_000_000;
+  if (id.includes("opus")) return 1_000_000;
+  return 200_000; // default for sonnet/haiku/unknown
+}
+const CONTEXT_WINDOW = getContextWindow(model);
 
 // --- helpers ---
 function readJSON(fd) {
