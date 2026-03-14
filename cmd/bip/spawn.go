@@ -484,6 +484,9 @@ func buildPRPrompt(repo string, number int, data *ItemData) string {
 3. Prepare the user to respond to the latest activity
 4. If anything is unclear, explore the codebase to understand it
 5. Summarize the discussion and suggest a response
+6. Before presenting your final review, run /comment-check and paste your
+   draft review into the subagent so it can fact-check your claims against
+   the actual code. Fix any errors it finds before presenting to the user.
 
 Do NOT approve, merge, comment, or make changes. Analysis only.`
 	} else {
@@ -493,7 +496,10 @@ Do NOT approve, merge, comment, or make changes. Analysis only.`
    or data the author included. Do not skip over this content.
 3. If no guidelines exist, review the PR for correctness, style, and potential issues
 4. Summarize what the PR does and any concerns
-5. Prepare a review for the user
+5. Prepare a draft review
+6. Before presenting your final review, run /comment-check and paste your
+   draft review into the subagent so it can fact-check your claims against
+   the actual code. Fix any errors it finds before presenting to the user.
 
 Do NOT approve, merge, comment, or make changes. Analysis only.`
 	}
