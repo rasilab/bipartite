@@ -293,43 +293,26 @@ func TestBuildSummaryPrompt(t *testing.T) {
 	})
 }
 
-func TestBuildDigestPrompt(t *testing.T) {
-	t.Run("includes channel and date range", func(t *testing.T) {
+func TestBuildPersonDigestPrompt(t *testing.T) {
+	t.Run("includes author header", func(t *testing.T) {
 		items := []DigestItem{
-			{
-				Number:  123,
-				Title:   "Test issue",
-				Author:  "testuser",
-				IsPR:    false,
-				State:   "open",
-				HTMLURL: "https://github.com/org/repo/issues/123",
-			},
+			{Number: 123, Title: "Test issue", Author: "testuser", IsPR: false, State: "open", HTMLURL: "https://github.com/org/repo/issues/123"},
 		}
-		prompt := buildDigestPrompt(items, "dasm2", "Jan 12-18")
+		prompt := buildPersonDigestPrompt(items, "testuser")
 
-		if !strings.Contains(prompt, "Channel: dasm2") {
-			t.Error("missing Channel")
+		if !strings.Contains(prompt, "Author: @testuser") {
+			t.Error("missing Author header")
 		}
-		if !strings.Contains(prompt, "Date range: Jan 12-18") {
-			t.Error("missing Date range")
-		}
-		if !strings.Contains(prompt, "*This week in dasm2*") {
-			t.Error("missing This week in header")
+		if !strings.Contains(prompt, "*@testuser*") {
+			t.Error("missing bold author in example")
 		}
 	})
 
 	t.Run("formats issue", func(t *testing.T) {
 		items := []DigestItem{
-			{
-				Number:  123,
-				Title:   "Test issue",
-				Author:  "testuser",
-				IsPR:    false,
-				State:   "open",
-				HTMLURL: "https://github.com/org/repo/issues/123",
-			},
+			{Number: 123, Title: "Test issue", Author: "testuser", IsPR: false, State: "open", HTMLURL: "https://github.com/org/repo/issues/123"},
 		}
-		prompt := buildDigestPrompt(items, "dasm2", "Jan 12-18")
+		prompt := buildPersonDigestPrompt(items, "testuser")
 
 		if !strings.Contains(prompt, "[Issue]") {
 			t.Error("missing [Issue]")
@@ -340,30 +323,16 @@ func TestBuildDigestPrompt(t *testing.T) {
 		if !strings.Contains(prompt, "Test issue") {
 			t.Error("missing title")
 		}
-		if !strings.Contains(prompt, "@testuser") {
-			t.Error("missing author")
-		}
 	})
 
-	t.Run("formats PR", func(t *testing.T) {
+	t.Run("formats merged PR", func(t *testing.T) {
 		items := []DigestItem{
-			{
-				Number:  456,
-				Title:   "Test PR",
-				Author:  "prauthor",
-				IsPR:    true,
-				State:   "closed",
-				Merged:  true,
-				HTMLURL: "https://github.com/org/repo/pull/456",
-			},
+			{Number: 456, Title: "Test PR", Author: "prauthor", IsPR: true, State: "closed", Merged: true, HTMLURL: "https://github.com/org/repo/pull/456"},
 		}
-		prompt := buildDigestPrompt(items, "dasm2", "Jan 12-18")
+		prompt := buildPersonDigestPrompt(items, "prauthor")
 
 		if !strings.Contains(prompt, "[PR]") {
 			t.Error("missing [PR]")
-		}
-		if !strings.Contains(prompt, "#456") {
-			t.Error("missing #456")
 		}
 		if !strings.Contains(prompt, "merged") {
 			t.Error("missing merged state")
@@ -372,16 +341,9 @@ func TestBuildDigestPrompt(t *testing.T) {
 
 	t.Run("includes Slack format instructions", func(t *testing.T) {
 		items := []DigestItem{
-			{
-				Number:  123,
-				Title:   "Test",
-				Author:  "user",
-				IsPR:    false,
-				State:   "open",
-				HTMLURL: "https://github.com/org/repo/issues/123",
-			},
+			{Number: 123, Title: "Test", Author: "user", IsPR: false, State: "open", HTMLURL: "https://github.com/org/repo/issues/123"},
 		}
-		prompt := buildDigestPrompt(items, "test", "Jan 1-7")
+		prompt := buildPersonDigestPrompt(items, "user")
 
 		if !strings.Contains(prompt, "Slack") {
 			t.Error("missing Slack")
@@ -389,139 +351,25 @@ func TestBuildDigestPrompt(t *testing.T) {
 		if !strings.Contains(prompt, "mrkdwn") {
 			t.Error("missing mrkdwn")
 		}
-		if !strings.Contains(prompt, "<URL|#number>") {
-			t.Error("missing URL format instruction")
+		if !strings.Contains(prompt, "Slack-style links") {
+			t.Error("missing Slack link format instruction")
 		}
 	})
 }
 
-func TestPostprocessDigest(t *testing.T) {
-	t.Run("adds PR prefix with repo", func(t *testing.T) {
-		digest := "• Fix bug (<https://github.com/org/repo/pull/123|#123>)"
-		items := []DigestItem{
-			{Ref: "org/repo#123", Number: 123, IsPR: true},
-		}
-		result := postprocessDigest(digest, items)
-
-		if !strings.Contains(result, "• repo PR: Fix bug") {
-			t.Errorf("got %q, want PR prefix", result)
-		}
-	})
-
-	t.Run("adds Issue prefix with repo", func(t *testing.T) {
-		digest := "• New feature request (<https://github.com/org/repo/issues/456|#456>)"
-		items := []DigestItem{
-			{Ref: "org/repo#456", Number: 456, IsPR: false},
-		}
-		result := postprocessDigest(digest, items)
-
-		if !strings.Contains(result, "• repo Issue: New feature request") {
-			t.Errorf("got %q, want Issue prefix", result)
-		}
-	})
-
-	t.Run("adds contributors", func(t *testing.T) {
-		digest := "• Fix bug (<https://github.com/org/repo/pull/123|#123>)"
-		items := []DigestItem{
-			{Ref: "org/repo#123", Number: 123, IsPR: true, Contributors: []string{"alice", "bob", "charlie"}},
-		}
-		result := postprocessDigest(digest, items)
-
-		if !strings.HasSuffix(result, "— @alice @bob @charlie") {
-			t.Errorf("got %q, want contributors suffix", result)
-		}
-	})
-
-	t.Run("preserves non-bullet lines", func(t *testing.T) {
-		digest := `*This week in dasm2* (Jan 12-18)
-
-*Merged*
-• Fix bug (<https://github.com/org/repo/pull/123|#123>)
-
-*Discussion*
-• Feature request (<https://github.com/org/repo/issues/456|#456>)`
-		items := []DigestItem{
-			{Ref: "org/repo#123", Number: 123, IsPR: true, Contributors: []string{"alice"}},
-			{Ref: "org/repo#456", Number: 456, IsPR: false, Contributors: []string{"bob"}},
-		}
-		result := postprocessDigest(digest, items)
-
-		if !strings.Contains(result, "*This week in dasm2* (Jan 12-18)") {
-			t.Error("should preserve header")
-		}
-		if !strings.Contains(result, "*Merged*") {
-			t.Error("should preserve Merged section")
-		}
-		if !strings.Contains(result, "*Discussion*") {
-			t.Error("should preserve Discussion section")
-		}
-	})
-
-	t.Run("handles missing item", func(t *testing.T) {
-		digest := "• Unknown item (<https://github.com/org/repo/pull/999|#999>)"
-		items := []DigestItem{
-			{Ref: "org/repo#123", Number: 123, IsPR: true},
-		}
-		result := postprocessDigest(digest, items)
-
-		if result != digest {
-			t.Errorf("got %q, want unchanged %q", result, digest)
-		}
-	})
-
-	t.Run("handles line without link", func(t *testing.T) {
-		digest := "• Some text without a link"
-		items := []DigestItem{
-			{Ref: "org/repo#123", Number: 123, IsPR: true},
-		}
-		result := postprocessDigest(digest, items)
-
-		if result != digest {
-			t.Errorf("got %q, want unchanged %q", result, digest)
-		}
-	})
-
-	t.Run("handles empty contributors", func(t *testing.T) {
-		digest := "• Fix bug (<https://github.com/org/repo/pull/123|#123>)"
-		items := []DigestItem{
-			{Ref: "org/repo#123", Number: 123, IsPR: true, Contributors: []string{}},
-		}
-		result := postprocessDigest(digest, items)
-
-		if strings.Contains(result, "—") {
-			t.Errorf("got %q, should not have dash for empty contributors", result)
-		}
-	})
-
-	t.Run("same number different repos", func(t *testing.T) {
-		digest := `*Merged*
-• First repo item (<https://github.com/org/repo-a/pull/31|#31>)
-• Second repo item (<https://github.com/org/repo-b/issues/31|#31>)`
-		items := []DigestItem{
-			{Ref: "org/repo-a#31", Number: 31, IsPR: true, Contributors: []string{"alice"}},
-			{Ref: "org/repo-b#31", Number: 31, IsPR: false, Contributors: []string{"bob"}},
-		}
-		result := postprocessDigest(digest, items)
-
-		if !strings.Contains(result, "• repo-a PR: First repo item") {
-			t.Errorf("wrong repo-a line: %s", result)
-		}
-		if !strings.Contains(result, "• repo-b Issue: Second repo item") {
-			t.Errorf("wrong repo-b line: %s", result)
-		}
-	})
-}
-
-func TestGenerateDigestSummaryEmpty(t *testing.T) {
-	result, err := GenerateDigestSummary(nil, "dasm2", "Jan 12-18")
+func TestGenerateDigestPerPersonEmpty(t *testing.T) {
+	messages, err := GenerateDigestPerPerson(nil, "dasm2", "Jan 12-18")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !strings.Contains(result, "*This week in dasm2*") {
+	if len(messages) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(messages))
+	}
+	if !strings.Contains(messages[0], "*This week in dasm2*") {
 		t.Error("should contain header")
 	}
-	if !strings.Contains(result, "No activity") {
+	if !strings.Contains(messages[0], "No activity") {
 		t.Error("should contain No activity message")
 	}
 }
