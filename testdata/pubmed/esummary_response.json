@@ -1,0 +1,26 @@
+{
+  "result": {
+    "uids": ["19872477"],
+    "19872477": {
+      "uid": "19872477",
+      "pubdate": "2009 Apr 10",
+      "source": "Science",
+      "title": "Genome-wide analysis in vivo of translation with nucleotide resolution using ribosome profiling.",
+      "authors": [
+        {"name": "Ingolia NT", "authtype": "Author"},
+        {"name": "Ghaemmaghami S", "authtype": "Author"},
+        {"name": "Newman JRS", "authtype": "Author"},
+        {"name": "Weissman JS", "authtype": "Author"}
+      ],
+      "volume": "324",
+      "issue": "5924",
+      "pages": "218-23",
+      "elocationid": "doi: 10.1126/science.1168978",
+      "articleids": [
+        {"idtype": "pubmed", "value": "19872477"},
+        {"idtype": "doi", "value": "10.1126/science.1168978"},
+        {"idtype": "pmc", "value": "PMC2746483"}
+      ]
+    }
+  }
+}

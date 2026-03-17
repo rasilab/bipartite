@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<!DOCTYPE PubmedArticleSet PUBLIC "-//NLM//DTD PubMedArticle, 1st January 2024//EN" "https://dtd.nlm.nih.gov/ncbi/pubmed/out/pubmed_240101.dtd">
+<PubmedArticleSet>
+  <PubmedArticle>
+    <MedlineCitation>
+      <PMID>19872477</PMID>
+      <Article>
+        <Journal>
+          <JournalIssue>
+            <PubDate>
+              <Year>2009</Year>
+              <Month>Apr</Month>
+              <Day>10</Day>
+            </PubDate>
+          </JournalIssue>
+          <Title>Science (New York, N.Y.)</Title>
+          <ISOAbbreviation>Science</ISOAbbreviation>
+        </Journal>
+        <ArticleTitle>Genome-wide analysis in vivo of translation with nucleotide resolution using ribosome profiling.</ArticleTitle>
+        <Abstract>
+          <AbstractText>Cells regulate gene expression broadly through control of translation.</AbstractText>
+        </Abstract>
+        <AuthorList>
+          <Author>
+            <LastName>Ingolia</LastName>
+            <ForeName>Nicholas T</ForeName>
+            <Initials>NT</Initials>
+          </Author>
+          <Author>
+            <LastName>Ghaemmaghami</LastName>
+            <ForeName>Sina</ForeName>
+            <Initials>S</Initials>
+          </Author>
+          <Author>
+            <LastName>Newman</LastName>
+            <ForeName>John R S</ForeName>
+            <Initials>JRS</Initials>
+          </Author>
+          <Author>
+            <LastName>Weissman</LastName>
+            <ForeName>Jonathan S</ForeName>
+            <Initials>JS</Initials>
+          </Author>
+        </AuthorList>
+      </Article>
+    </MedlineCitation>
+    <PubmedData>
+      <ArticleIdList>
+        <ArticleId IdType="pubmed">19872477</ArticleId>
+        <ArticleId IdType="doi">10.1126/science.1168978</ArticleId>
+        <ArticleId IdType="pmc">PMC2746483</ArticleId>
+      </ArticleIdList>
+    </PubmedData>
+  </PubmedArticle>
+</PubmedArticleSet>

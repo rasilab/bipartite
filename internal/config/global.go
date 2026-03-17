@@ -15,6 +15,8 @@ type GlobalConfig struct {
 	NexusPath     string            `yaml:"nexus_path,omitempty"`
 	S2APIKey      string            `yaml:"s2_api_key,omitempty"`
 	ASTAAPIKey    string            `yaml:"asta_api_key,omitempty"`
+	PubMedAPIKey  string            `yaml:"pubmed_api_key,omitempty"`
+	PubMedEmail   string            `yaml:"pubmed_email,omitempty"`
 	SlackBotToken string            `yaml:"slack_bot_token,omitempty"`
 	GitHubToken   string            `yaml:"github_token,omitempty"`
 	SlackWebhooks map[string]string `yaml:"slack_webhooks,omitempty"`
@@ -94,6 +96,18 @@ func GetS2APIKey() string {
 func GetASTAAPIKey() string {
 	cfg, _ := LoadGlobalConfig()
 	return cfg.ASTAAPIKey
+}
+
+// GetPubMedAPIKey returns the PubMed API key from global config.
+func GetPubMedAPIKey() string {
+	cfg, _ := LoadGlobalConfig()
+	return cfg.PubMedAPIKey
+}
+
+// GetPubMedEmail returns the PubMed email from global config.
+func GetPubMedEmail() string {
+	cfg, _ := LoadGlobalConfig()
+	return cfg.PubMedEmail
 }
 
 // GetSlackBotToken returns the Slack bot token from global config.

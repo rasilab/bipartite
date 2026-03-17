@@ -1,0 +1,18 @@
+{
+  "header": {
+    "type": "esearch",
+    "version": "0.3"
+  },
+  "esearchresult": {
+    "count": "142",
+    "retmax": "5",
+    "retstart": "0",
+    "idlist": [
+      "19872477",
+      "21572407",
+      "22056041",
+      "23594524",
+      "24842990"
+    ]
+  }
+}
