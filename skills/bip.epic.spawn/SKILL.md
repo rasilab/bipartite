@@ -25,6 +25,19 @@ via `/bip.epic` first.
 
 ## Workflow
 
+### Prerequisite: Issue number required
+
+Every spawn MUST target an existing GitHub issue. If the conductor wants
+to spawn work that doesn't have an issue yet (reruns, follow-ups, quick
+experiments), file the issue first:
+
+1. Write a minimal issue body (title + 3-sentence motivation + success criteria)
+2. `gh issue create --title "..." --body-file ISSUE-*.md`
+3. Then proceed with the spawn using the new issue number
+
+Never write a spawn prompt with `issue=0` or without `/work-issue <N>`.
+Issueless spawns break EPIC tracking, PR linking, and conductor polling.
+
 ### Step 1: Select or create slot
 
 Read `clone_root` and `local_worktrees` from `.epic-config.json`.
