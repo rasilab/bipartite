@@ -110,12 +110,14 @@ evaluation (stop_reason set, lead_guidance present), mention the lead's
 assessment briefly. This tells the conductor what the workers are doing
 without having to read full issue comments.
 
-**Flag needs-human** — if any clone has `phase: "needs-human"` (or
-legacy `blocked`), highlight it prominently. These require conductor
-attention. **Ring the terminal bell** so the user notices even if
-Ghostty is in the background:
+**Flag needs-human and completed** — if any clone has `phase: "needs-human"`
+(or legacy `blocked`) or `phase: "completed"`, highlight it prominently.
+These require conductor attention. **Ring the terminal bell and send a
+phone notification** so the user notices even if away:
 ```bash
 printf '\a'
+NTFY_TOPIC=$(grep ntfy_topic ~/.config/bip/config.yml | awk '{print $2}')
+[ -n "$NTFY_TOPIC" ] && curl -s -H "Title: bip epic" -d "<clone> <phase> (<issue>)" "ntfy.sh/$NTFY_TOPIC" > /dev/null
 ```
 
 **Only report active clones** — clones with a tmux window that are
