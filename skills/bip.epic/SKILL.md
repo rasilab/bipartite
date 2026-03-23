@@ -163,21 +163,38 @@ gh issue list --search "sort:updated-desc" --limit 10 --json number,title,state
 Cross-reference with EPIC bodies — flag anything merged/closed that
 the EPIC doesn't reflect yet.
 
-### Step 4: Build status table
+### Step 4: Build status display
 
-Display a single table showing the full picture:
+The dashboard is **branch/issue-centric**, not clone-centric. The user
+cares about what work is running and what's ready to spawn — not which
+clones are idle. Omit idle clones entirely.
 
-| Slot | Branch | Status | Issue | Summary |
-|------|--------|--------|-------|---------|
-| cedar | feat-x | active (tmux) | i281 | Implementing clamping |
-| oak   | main   | idle   | —    | — |
-| issue-295 | fix-y | active (tmux) | i295 | Blocked on upstream |
+**Section 1: Active work** — one entry per non-main branch, sorted by
+status (active → awaiting → needs-human → stale):
 
-Then list **unassigned issues** ready for work (not blocked, not in progress):
+| Issue | Status | Clone | Summary |
+|-------|--------|-------|---------|
+| i281 | active (tmux) | cedar | Implementing clamping |
+| i295 | awaiting (~Tue) | pine | 436/1800 ML jobs on orca02 |
+| i310 | needs-human | fir | Architectural decision needed |
+| i589 | stale (4d) | cedar | Check if experiment finished |
 
-**Ready issues** (not assigned to any clone):
+Include recently merged PRs (last 48h) as a compact list above the
+table so the user sees what landed:
+
+**Recently merged**: p705, p704, p703, p702, p647, p710, p711
+
+**Section 2: Ready to spawn** — issues not assigned to any clone,
+not blocked, not dependent on in-flight work, ordered by priority.
+Check each candidate's `depends_on` field and any blocking context
+before listing. If an issue depends on an unmerged PR or unfinished
+experiment, it is NOT ready — omit it silently.
+
 - `i302` — Add retry logic to batch pipeline
-- `i310` — Update benchmark thresholds
+- *(N idle clones available)*
+
+This two-section layout is the primary loop: what's running, what's
+next. Keep it tight — the user should be able to scan in 10 seconds.
 
 ### Step 5: Propose next action
 
