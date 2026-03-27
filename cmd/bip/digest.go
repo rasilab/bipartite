@@ -27,6 +27,7 @@ var (
 	digestSince   string
 	digestPostTo  string
 	digestRepos   string
+	digestExclude string
 	digestPost    bool
 	digestVerbose bool
 )
@@ -38,6 +39,7 @@ func init() {
 	digestCmd.Flags().StringVar(&digestSince, "since", "1w", "Time period to summarize (e.g., 1w, 2d, 12h)")
 	digestCmd.Flags().StringVar(&digestPostTo, "post-to", "", "Override destination channel for posting")
 	digestCmd.Flags().StringVar(&digestRepos, "repos", "", "Override repos to scan (comma-separated)")
+	digestCmd.Flags().StringVar(&digestExclude, "exclude", "", "Repos to exclude (comma-separated, matches repo name suffix)")
 	digestCmd.Flags().BoolVar(&digestPost, "post", false, "Actually post to Slack (default: preview only)")
 	digestCmd.Flags().BoolVar(&digestVerbose, "verbose", false, "Fetch PR/issue bodies and include LLM summaries")
 	digestCmd.MarkFlagRequired("channel")
@@ -64,6 +66,25 @@ func runDigest(cmd *cobra.Command, args []string) {
 			fmt.Fprintf(os.Stderr, "error: loading repos for channel %s: %v\n", digestChannel, err)
 			os.Exit(1)
 		}
+	}
+
+	// Apply --exclude filter
+	if digestExclude != "" {
+		excludeSet := make(map[string]bool)
+		for _, e := range strings.Split(digestExclude, ",") {
+			excludeSet[strings.TrimSpace(e)] = true
+		}
+		var filtered []string
+		for _, r := range repos {
+			repoName := r
+			if idx := strings.LastIndex(r, "/"); idx >= 0 {
+				repoName = r[idx+1:]
+			}
+			if !excludeSet[repoName] {
+				filtered = append(filtered, r)
+			}
+		}
+		repos = filtered
 	}
 
 	// Validate we have repos
@@ -114,7 +135,16 @@ func runDigest(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "error: building digest items: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Found %d items\n", len(items))
+	// Filter out closed issues (keep merged PRs, open items)
+	var filtered []flow.DigestItem
+	for _, item := range items {
+		if item.State == "closed" && !item.IsPR {
+			continue
+		}
+		filtered = append(filtered, item)
+	}
+	fmt.Printf("Found %d items (%d after filtering closed issues)\n", len(items), len(filtered))
+	items = filtered
 
 	// Generate summaries if verbose mode
 	if digestVerbose && len(items) > 0 {
@@ -126,15 +156,15 @@ func runDigest(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Generate summary
-	fmt.Println("Generating summary...")
-	message, err := flow.GenerateDigestSummary(items, digestChannel, dateRange)
+	// Generate per-person summaries
+	fmt.Println("Generating per-person summaries...")
+	messages, err := flow.GenerateDigestPerPerson(items, digestChannel, dateRange)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: generating digest summary: %v\n", err)
 		os.Exit(1)
 	}
 
-	if message == "" {
+	if len(messages) == 0 {
 		fmt.Println("Failed to generate summary")
 		os.Exit(1)
 	}
@@ -144,16 +174,21 @@ func runDigest(cmd *cobra.Command, args []string) {
 	fmt.Println(strings.Repeat("=", 60))
 	fmt.Println("DIGEST PREVIEW")
 	fmt.Println(strings.Repeat("=", 60))
-	fmt.Println(message)
+	for _, msg := range messages {
+		fmt.Println(msg)
+		fmt.Println()
+	}
 	fmt.Println(strings.Repeat("=", 60))
 	fmt.Println()
 
 	// Post to Slack (only if --post flag is set)
 	if digestPost {
-		fmt.Printf("Posting to #%s...\n", postTo)
-		if err := flow.SendDigest(postTo, message); err != nil {
-			fmt.Fprintf(os.Stderr, "error: posting to Slack: %v\n", err)
-			os.Exit(1)
+		fmt.Printf("Posting %d messages to #%s...\n", len(messages), postTo)
+		for i, msg := range messages {
+			if err := flow.SendDigest(postTo, msg); err != nil {
+				fmt.Fprintf(os.Stderr, "error: posting message %d to Slack: %v\n", i+1, err)
+				os.Exit(1)
+			}
 		}
 		fmt.Println("Posted successfully!")
 	} else {
@@ -218,6 +253,7 @@ func fetchDigestItems(repos []string, since time.Time, includeBody bool) ([]flow
 				Author:       item.User.Login,
 				IsPR:         item.IsPR,
 				State:        item.State,
+				Merged:       item.IsPR && item.State == "closed",
 				HTMLURL:      item.HTMLURL,
 				CreatedAt:    item.CreatedAt.Format(time.RFC3339),
 				UpdatedAt:    item.UpdatedAt.Format(time.RFC3339),

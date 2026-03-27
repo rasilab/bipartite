@@ -25,6 +25,19 @@ via `/bip.epic` first.
 
 ## Workflow
 
+### Prerequisite: Issue number required
+
+Every spawn MUST target an existing GitHub issue. If the conductor wants
+to spawn work that doesn't have an issue yet (reruns, follow-ups, quick
+experiments), file the issue first:
+
+1. Write a minimal issue body (title + 3-sentence motivation + success criteria)
+2. `gh issue create --title "..." --body-file ISSUE-*.md`
+3. Then proceed with the spawn using the new issue number
+
+Never write a spawn prompt with `issue=0` or without `/work-issue <N>`.
+Issueless spawns break EPIC tracking, PR linking, and conductor polling.
+
 ### Step 1: Select or create slot
 
 Read `clone_root` and `local_worktrees` from `.epic-config.json`.
@@ -54,8 +67,8 @@ CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
 SLOT="$CLONE_ROOT/issue-<N>"
 if [ -d "$SLOT" ]; then
   # Worktree exists — check for active tmux window
-  if tmux list-windows -F "#W" | grep -q "^i<N>$"; then
-    echo "Active session already running for i<N> — attach to it instead"
+  if tmux list-windows -F "#W" | grep -q "^<N>-issue-<N>$"; then
+    echo "Active session already running for <N>-issue-<N> — attach to it instead"
     exit 0
   else
     echo "Worktree exists, no active session — will resume"
@@ -234,6 +247,10 @@ Now read the issue and begin work:
   Use the awaiting-results phase with check_files pointing to local NFS
   output paths — no SSH needed to poll, just test -f /nfs/path/output.
 - Never use make remote-sync or make remote-tmux in NFS mode.
+- SSH quoting tip: if a command has complex quoting or special characters,
+  write it to a temp file (e.g. /tmp/run-<N>.sh), then:
+    ssh <host> "bash /nfs/path/to/run-<N>.sh"
+  Clean up the temp file when the command finishes.
 - Use the absolute clone path in SSH commands (expand ~ from clone_root
   before embedding — remote shells resolve ~ relative to the SSH user's
   home, which may differ from the NFS path).
@@ -271,15 +288,15 @@ CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
 # Write prompt to temp file (conductor does this, NOT via shell expansion)
 # Use the Write tool to create /tmp/spawn-<N>.txt with the full prompt
 
-# Clone mode: --name is the clone name (e.g. "cedar")
+# Clone mode: --name is NNN-clone (e.g. "281-cedar")
 bip spawn --prompt-file /tmp/spawn-<N>.txt \
   --dir "$CLONE_ROOT/<clone-name>" \
-  --name "<clone-name>"
+  --name "<N>-<clone-name>"
 
-# Worktree mode: --name is the issue number (e.g. "i281")
+# Worktree mode: --name is NNN-issue-NNN (e.g. "281-issue-281")
 bip spawn --prompt-file /tmp/spawn-<N>.txt \
   --dir "$CLONE_ROOT/issue-<N>" \
-  --name "i<N>"
+  --name "<N>-issue-<N>"
 ```
 
 **IMPORTANT**: Always use `--prompt-file`, never `--prompt "$(cat file)"`.
@@ -337,5 +354,6 @@ These files live in clones, not in bipartite itself.
 
 ## Conventions
 
-Same as `/bip.epic`: `iN`/`pN` prefixes. Tmux windows named by clone name
-(clone mode) or issue number like `i281` (worktree mode).
+Same as `/bip.epic`: `iN`/`pN` prefixes. Tmux windows named `NNN-YYY`
+where NNN is the issue number and YYY is the clone/slot name
+(e.g. `281-cedar` in clone mode, `281-issue-281` in worktree mode).

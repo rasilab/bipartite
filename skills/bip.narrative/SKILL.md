@@ -141,14 +141,18 @@ After the user has reviewed the narrative, ask if they want to post it to Slack.
    git push
    ```
 
-2. Post to Slack using `bip digest --post`:
+2. Post the per-user digest to Slack:
    ```bash
    bip digest --channel {{channel}} --post
    ```
 
-   The webhook URL comes from `slack_webhooks` in `~/.config/bip/config.yml` or `SLACK_WEBHOOK_{{CHANNEL_UPPER}}` env var.
+3. Post the narrative link to Slack. Look up the webhook URL for the channel from `slack_webhooks` in `~/.config/bip/config.yml`, then:
+   ```bash
+   curl -s -X POST '{{webhook_url}}' -H 'Content-type: application/json' \
+     -d '{"text":"https://github.com/matsengrp/nexus/blob/main/narrative/{{channel}}/{{YYYY-MM-DD}}.md"}'
+   ```
 
-3. Report: "Posted to #{{channel}} with link to narrative."
+4. Report: "Posted per-user digest and narrative link to #{{channel}}."
 
 **If user declines:** Report "Narrative saved but not posted."
 

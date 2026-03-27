@@ -4,6 +4,8 @@ Open a tmux window for GitHub issue or PR review.
 
 ## Instructions
 
+**Just run `bip spawn` directly.** Do not attempt to construct `claude` or `tmux` commands yourself — `bip spawn` handles all of that.
+
 ```bash
 bip spawn org/repo#123
 bip spawn https://github.com/org/repo/pull/42

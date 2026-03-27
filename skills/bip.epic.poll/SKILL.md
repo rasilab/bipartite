@@ -95,7 +95,7 @@ Handle legacy phases from older status files:
 
 For clones that seem to have finished or are blocked:
 ```bash
-tmux capture-pane -t <clone-name> -p | tail -20
+tmux capture-pane -t <N>-<clone-name> -p | tail -20
 ```
 
 ## After polling
@@ -110,9 +110,15 @@ evaluation (stop_reason set, lead_guidance present), mention the lead's
 assessment briefly. This tells the conductor what the workers are doing
 without having to read full issue comments.
 
-**Flag needs-human** — if any clone has `phase: "needs-human"` (or
-legacy `blocked`), highlight it prominently. These require conductor
-attention.
+**Flag needs-human and completed** — if any clone has `phase: "needs-human"`
+(or legacy `blocked`) or `phase: "completed"`, highlight it prominently.
+These require conductor attention. **Ring the terminal bell and send a
+phone notification** so the user notices even if away:
+```bash
+printf '\a'
+NTFY_TOPIC=$(grep ntfy_topic ~/.config/bip/config.yml | awk '{print $2}')
+[ -n "$NTFY_TOPIC" ] && curl -s -H "Title: bip epic" -d "<clone> <phase> (<issue>)" "ntfy.sh/$NTFY_TOPIC" > /dev/null
+```
 
 **Only report active clones** — clones with a tmux window that are
 actually doing something. Don't list completed or idle clones; that's
@@ -141,11 +147,48 @@ the plan.
 
 ### Housekeeping (do silently, don't report unless problems)
 
-- Update EPIC bodies if merges changed status
+This is the ongoing cleanup that keeps slots and EPICs current between
+cold starts. Do it every poll cycle — don't wait for `/bip.epic`.
+
+#### Slot cleanup for merged PRs
+
+For each slot whose PR has merged (cross-reference merged PRs from
+check 1 with slot branches):
+
+**Worktree mode**:
+```bash
+CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
+# Confirm PR is merged before removing
+gh pr list --head <branch> --state merged --json number | jq length
+# If merged:
+git worktree remove "$CLONE_ROOT/issue-<N>"
+git branch -d <branch>
+```
+
+**Clone mode**:
+```bash
+CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
+git -C "$CLONE_ROOT/<clone>" checkout main
+git -C "$CLONE_ROOT/<clone>" pull --ff-only origin main
+rm -f "$CLONE_ROOT/<clone>/.epic-status.json" "$CLONE_ROOT/<clone>/.epic-worklog.md"
+```
+
+Also clean up stale slots: no tmux window AND `.epic-status.json`
+older than 30 minutes. Same cleanup as above.
+
+#### EPIC body updates
+
+If merges closed issues tracked in an EPIC, update the EPIC body:
+follow the **EPIC body update pattern** from `/bip.epic` (pull →
+edit → conflict-check → push). Check the box for completed items,
+update the clone assignments table.
+
+#### Memory
+
 - Update MEMORY.md only for orchestrator-level decisions/patterns
 
 ## Conventions
 
 Same as `/bip.epic`: `iN`/`pN` prefixes, full URLs on first mention.
-Tmux windows named by clone name (clone mode) or issue number like `i281`
-(worktree mode).
+Tmux windows named `NNN-YYY` where NNN is the issue number and YYY is the
+clone/slot name (e.g. `281-cedar` in clone mode, `281-issue-281` in worktree mode).

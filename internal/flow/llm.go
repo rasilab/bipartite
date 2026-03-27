@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -56,14 +55,14 @@ func CallClaude(prompt string, model string) (string, error) {
 		model = "haiku"
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, "claude", "--model", model, "-p", prompt)
 	output, err := cmd.Output()
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return "", fmt.Errorf("claude CLI timed out after 120s")
+			return "", fmt.Errorf("claude CLI timed out after 5m")
 		}
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			return "", fmt.Errorf("claude CLI error: %s", string(exitErr.Stderr))
@@ -182,25 +181,42 @@ func extractFromCodeBlock(text string) string {
 	return strings.Join(lines[start:end], "\n")
 }
 
-// GenerateDigestSummary generates a digest summary for channel activity.
-func GenerateDigestSummary(items []DigestItem, channel, dateRange string) (string, error) {
+// GenerateDigestPerPerson generates one digest message per author.
+// Returns a slice of Slack-formatted messages: header first, then one per person.
+func GenerateDigestPerPerson(items []DigestItem, channel, dateRange string) ([]string, error) {
 	if len(items) == 0 {
-		return fmt.Sprintf("*This week in %s* (%s)\n\nNo activity this period.", channel, dateRange), nil
+		return []string{fmt.Sprintf("*This week in %s* (%s)\n\nNo activity this period.", channel, dateRange)}, nil
 	}
 
-	prompt := buildDigestPrompt(items, channel, dateRange)
-	response, err := CallClaude(prompt, "haiku")
-	if err != nil {
-		return "", err
+	// Group items by author, preserving first-seen order
+	authorItems := make(map[string][]DigestItem)
+	var authorOrder []string
+	for _, item := range items {
+		if _, seen := authorItems[item.Author]; !seen {
+			authorOrder = append(authorOrder, item.Author)
+		}
+		authorItems[item.Author] = append(authorItems[item.Author], item)
 	}
 
-	return postprocessDigest(response, items), nil
+	// Generate one message per author
+	var messages []string
+	messages = append(messages, fmt.Sprintf("*This week in %s* (%s)", channel, dateRange))
+
+	for _, author := range authorOrder {
+		prompt := buildPersonDigestPrompt(authorItems[author], author)
+		response, err := CallClaude(prompt, "haiku")
+		if err != nil {
+			return nil, fmt.Errorf("generating summary for @%s: %w", author, err)
+		}
+		messages = append(messages, strings.TrimSpace(response))
+	}
+
+	return messages, nil
 }
 
-// buildDigestPrompt builds the prompt for digest summary generation.
-func buildDigestPrompt(items []DigestItem, channel, dateRange string) string {
+// buildPersonDigestPrompt builds a prompt for a single person's digest section.
+func buildPersonDigestPrompt(items []DigestItem, author string) string {
 	var itemsText strings.Builder
-
 	for _, item := range items {
 		itemType := "Issue"
 		if item.IsPR {
@@ -210,108 +226,34 @@ func buildDigestPrompt(items []DigestItem, channel, dateRange string) string {
 		if item.Merged {
 			state = "merged"
 		}
-
-		itemsText.WriteString(fmt.Sprintf("- [%s] #%d: %s (by @%s, %s) URL: %s\n",
-			itemType, item.Number, item.Title, item.Author, state, item.HTMLURL))
+		itemsText.WriteString(fmt.Sprintf("- [%s] #%d: %s (%s) URL: %s\n",
+			itemType, item.Number, item.Title, state, item.HTMLURL))
 	}
 
-	return fmt.Sprintf(`You are writing a weekly digest for a team Slack channel.
+	return fmt.Sprintf(`Summarize this person's GitHub activity as a compact Slack message section.
 
-Channel: %s
-Date range: %s
+Author: @%s
 
-Activity to summarize:
+Activity:
 %s
 
 CRITICAL REQUIREMENTS:
-- You MUST include EVERY SINGLE ITEM listed above. Do NOT summarize, skip, or omit ANY activity.
-- EVERY repository with activity MUST appear in the output. Missing repos is a failure.
-- Group similar items from the same repo on one line if needed, but NEVER drop items.
+- Include EVERY item listed above. Do NOT skip or omit any.
+- Keep descriptions very short (a few words each).
 
-Format the output as a Slack message using mrkdwn:
-- Start with: *This week in %s* (%s)
-- Use bullet points (•) for each item
-- Categorize by: Merged PRs, Open PRs, New Issues
-- Include Slack-style links: <URL|#number> or <URL|title>
-- Keep it concise - one line per item (or group related items from same repo)
-- Skip categories with no items
+Format as Slack mrkdwn:
+- Start with bold author header: *@%s*
+- Use bullet points (•) grouped by status: Merged, Open PRs, Open issues
+- Within each status bullet, list items comma-separated with short descriptions and Slack-style links
+- Skip status lines with no items
 
-Example output:
-*This week in dasm2* (Jan 12-18)
+Example:
+*@alice*
+• Merged: structure-aware loss (<https://github.com/org/repo/pull/142|#142>), dataset registry (<https://github.com/org/repo/pull/138|#138>)
+• Open PRs: attention refactor (<https://github.com/org/repo/pull/147|#147>)
+• Open issues: OOM on large batches (<https://github.com/org/repo/issues/156|#156>)
 
-*Merged*
-• repo-name PR: Structure-aware loss function (<https://github.com/...|#142>)
-
-*Open PRs*
-• repo-name PR: New feature in progress (<https://github.com/...|#147>)
-
-*New Issues*
-• repo-name Issue: OOM on large batches (<https://github.com/...|#156>)
-
-Return ONLY the formatted Slack message, no other text.`, channel, dateRange, itemsText.String(), channel, dateRange)
-}
-
-// URL pattern for extracting repo and number from Slack links
-var slackURLPattern = regexp.MustCompile(`<https://github\.com/([^/]+/[^/]+)/(?:pull|issues)/(\d+)\|#\d+>`)
-
-// postprocessDigest adds PR:/Issue: prefixes and @mentions to digest lines.
-func postprocessDigest(digest string, items []DigestItem) string {
-	// Build lookup by ref
-	itemLookup := make(map[string]DigestItem)
-	for _, item := range items {
-		itemLookup[item.Ref] = item
-	}
-
-	lines := strings.Split(digest, "\n")
-	var resultLines []string
-
-	for _, line := range lines {
-		if !strings.HasPrefix(line, "•") {
-			resultLines = append(resultLines, line)
-			continue
-		}
-
-		// Extract repo and number from URL in the line
-		match := slackURLPattern.FindStringSubmatch(line)
-		if match == nil {
-			resultLines = append(resultLines, line)
-			continue
-		}
-
-		repoFull := match[1]
-		number := match[2]
-		ref := repoFull + "#" + number
-
-		item, ok := itemLookup[ref]
-		if !ok {
-			resultLines = append(resultLines, line)
-			continue
-		}
-
-		// Extract repo name
-		repoName := ExtractRepoName(repoFull)
-
-		// Add repo and type prefix after bullet
-		typePrefix := "Issue:"
-		if item.IsPR {
-			typePrefix = "PR:"
-		}
-		prefix := repoName + " " + typePrefix
-		line = strings.Replace(line, "• ", "• "+prefix+" ", 1)
-
-		// Add contributors at the end
-		if len(item.Contributors) > 0 {
-			mentions := make([]string, len(item.Contributors))
-			for i, c := range item.Contributors {
-				mentions[i] = "@" + c
-			}
-			line = line + " — " + strings.Join(mentions, " ")
-		}
-
-		resultLines = append(resultLines, line)
-	}
-
-	return strings.Join(resultLines, "\n")
+Return ONLY the formatted section, no other text.`, author, itemsText.String(), author)
 }
 
 // SummarizeDigestItems generates AI summaries for digest items with controlled concurrency.
