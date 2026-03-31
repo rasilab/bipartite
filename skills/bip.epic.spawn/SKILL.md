@@ -205,16 +205,57 @@ COMPLETION: When done (or when lead says completed):
 3. Update .epic-status.json phase to quality-gate
 4. QUALITY GATE LOOP — repeat until both pass clean:
    a. Run /pr-check — fix everything it flags, commit and push
-   b. Run /pr-review — fix ALL issues (even minor/advisory), commit and push
-   c. If either flagged issues, go back to (a)
+   b. Run /pr-review — triage each finding (see REVIEW TRIAGE below),
+      fix the ones you'll address, commit and push
+   c. If either flagged issues that you fixed, go back to (a)
    Track quality gate iterations in .epic-status.json
-5. When both pass with zero issues:
+5. When both pass clean (or remaining findings are all deferred):
    - Invoke the issue-lead one final time (it will set phase to completed)
+   - Print a FINAL RECAP (see below)
    - Output the completion promise ISSUE WORK COMPLETE
 6. STOP only if a finding requires genuine user judgment (design
    questions, ambiguous requirements, architectural tradeoffs).
    For everything else — formatting, test gaps, docs, naming,
    lint, cruft — just fix it and move on.
+
+REVIEW TRIAGE — For each /pr-review finding, decide:
+  • FIX NOW — sensible improvements you can complete quickly
+    (naming, docs, small refactors, test gaps, lint). Just do them.
+  • DEFER — findings that are too large to complete in this PR or
+    require design decisions beyond the issue scope. For each deferred
+    finding, add a line to the DEFERRED section of the PR body:
+      > **Deferred**: <one-line description> — <why it's out of scope>
+    These become fodder for follow-up issues.
+  Default to FIX NOW. Only defer when the fix would be a meaningful
+  scope expansion. "It would take a few minutes" is not a reason to defer.
+
+FINAL RECAP — Print this summary just before outputting the completion
+promise so the conductor (and user) can see the full story at a glance:
+
+```
+═══ COMPLETED: #N — TITLE ═══
+PR: <full PR URL>
+
+Summary:
+  <2-5 sentence narrative — what changed and key decisions>
+
+Pivots / surprises:
+  <anything that deviated from the original plan, or "none">
+
+Deferred items:
+  <list from PR body DEFERRED section, or "none">
+
+Suggested follow-up issues:
+  <ideas for next steps, loose ends, or extensions that emerged
+   during the work — one bullet each, phrased as issue titles>
+
+Quality gate: passed
+═══════════════════════════════
+```
+
+Get the PR URL from `gh pr view --json url -q .url`. This recap MUST
+appear in the worker's output — it is the primary artifact the
+conductor reads after the session ends.
 
 IMPORTANT CONTEXT:
 (Add issue-specific context here — data locations, phasing
