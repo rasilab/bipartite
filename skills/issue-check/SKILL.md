@@ -179,15 +179,52 @@ decisions. Flag conflicts as **HIGH**. Common things to catch:
     problems (e.g., coverage histograms, convergence plots, sanity
     checks)?
 
-### Step 4: Fix gaps
+### Step 4: Fix gaps (with approval gate)
 
-Based on the subagent's report, edit the issue file to address all
-gaps. Prefer adding concrete details (exact column names, formulas,
-file paths) over vague placeholders.
+Determine whether the agent authored this issue file in the current
+session. This controls whether edits require approval:
+
+- **Agent-authored** (the agent wrote the issue earlier in this same
+  session): Edit the file directly to fix all gaps. No approval
+  needed — the agent owns the content.
+- **User-authored or external** (the file was provided by the user,
+  loaded from GitHub, or written in a previous session): **Do not
+  edit without explicit user approval.** Present findings first.
+
+#### When approval is required
+
+Present the subagent's findings as a concise summary:
+- List each gap found, grouped by severity (CRITICAL / HIGH / MEDIUM / LOW)
+- For each gap, state what the problem is and what the proposed fix would be
+- Note any hard-wrapping issues (paragraphs broken at ~70-80 chars that should be single lines)
+
+If the findings are substantial (more than 3-4 items, or any
+CRITICAL/HIGH), write them to a temporary file and open for review:
+
+```bash
+cat > /tmp/issue-check-findings.md <<'EOF'
+... findings ...
+EOF
+
+if [ -n "$TMUX" ]; then
+    tmux display-popup -w 80% -h 80% -E -- less /tmp/issue-check-findings.md
+elif [ "$TERM_PROGRAM" = "zed" ]; then
+    zed /tmp/issue-check-findings.md
+fi
+```
+
+Then **stop and wait** for the user to confirm which edits to apply.
+Do not proceed until the user says to go ahead.
+
+#### Applying edits
+
+Whether auto-applying (agent-authored) or after approval
+(user-authored), fix gaps by adding concrete details (exact column
+names, formulas, file paths) over vague placeholders.
 
 **Fix hard-wrapping.** If the file contains hard-wrapped paragraphs (newlines inserted mid-sentence at ~70-80 characters), unwrap them so each paragraph is a single long line. Only newlines for actual structural breaks (between paragraphs, list items, headings). GitHub renders markdown with soft wrapping.
 
-### Step 5: Submit via /issue-file
+### Step 6: Submit via /issue-file
 
 Invoke the `/issue-file` skill with the same file path. It will open
 the file for the user to review after submitting:
@@ -196,7 +233,7 @@ the file for the user to review after submitting:
 /issue-file <file_path>
 ```
 
-### Step 6: Report
+### Step 7: Report
 
 Summarize:
 - Number of gaps found and fixed (grouped by severity if constitution
