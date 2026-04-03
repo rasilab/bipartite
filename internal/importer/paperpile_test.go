@@ -61,7 +61,7 @@ func TestParsePaperpile_ValidEntry(t *testing.T) {
 		"title": "Test Paper",
 		"abstract": "This is a test abstract",
 		"journal": "Test Journal",
-		"notes": "SONIA (linear)",
+		"note": "SONIA (linear)",
 		"published": {"year": "2026", "month": "3", "day": "15"},
 		"author": [
 			{"first": "John", "last": "Smith", "orcid": "0000-0001-2345-6789"},
@@ -133,8 +133,8 @@ func TestParsePaperpile_ValidEntry(t *testing.T) {
 	}
 
 	// Check notes
-	if ref.Notes != "SONIA (linear)" {
-		t.Errorf("Notes = %v, want SONIA (linear)", ref.Notes)
+	if ref.Note != "SONIA (linear)" {
+		t.Errorf("Notes = %v, want SONIA (linear)", ref.Note)
 	}
 
 	// Check import source
@@ -159,8 +159,8 @@ func TestParsePaperpile_WithoutNotes(t *testing.T) {
 	if len(errs) > 0 {
 		t.Fatalf("ParsePaperpile() returned errors: %v", errs)
 	}
-	if refs[0].Notes != "" {
-		t.Errorf("Notes = %v, want empty string", refs[0].Notes)
+	if refs[0].Note != "" {
+		t.Errorf("Notes = %v, want empty string", refs[0].Note)
 	}
 }
 
