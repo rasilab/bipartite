@@ -141,6 +141,75 @@ decisions. Flag conflicts as **HIGH**. Common things to catch:
    than duplicating it. Name the specific existing file/directory and
    explain what can be reused.
 
+#### Codebase style and structure alignment
+
+8b. **Existing code pattern conformance**: Read the source files most
+   relevant to the proposed work (the directory where new code would
+   land, plus 2-3 sibling modules) and check that the issue's design
+   fits the patterns already established in the codebase. This catches
+   drift that DESIGN.md and CONSTITUTION.md cannot — emergent
+   conventions that live only in the code.
+
+   **How to check:**
+   - Identify where the proposed code would live (package, directory,
+     module).
+   - Read 2-3 existing files in that area to extract patterns: naming
+     conventions (functions, types, files), error handling idiom,
+     constructor/factory style, test file layout, and public API shape.
+   - Compare the issue's proposed interfaces, type names, function
+     signatures, and file organization against those patterns.
+
+   **Flag as HIGH if:**
+   - The issue proposes a naming convention that conflicts with
+     neighbors (e.g., `NewFooClient()` when siblings use `OpenFoo()`)
+   - The issue introduces a structural pattern not used elsewhere
+     (e.g., a global registry when the codebase uses dependency
+     injection, or callbacks when the codebase uses interfaces)
+   - The issue puts files in a location that breaks the existing
+     package layout (e.g., a new top-level package when similar
+     functionality lives under `internal/`)
+   - The issue proposes a public API surface that is inconsistent
+     with sibling modules (e.g., exposing struct fields when neighbors
+     use getter methods, or vice versa)
+
+   **Recommend:** Name the specific existing files that set the
+   pattern and show what the issue should match.
+
+#### Redundancy with existing issues
+
+8c. **Duplicate or overlapping issues**: Search open GitHub issues to
+   check whether the proposed work duplicates or substantially overlaps
+   with an existing issue. This prevents wasted effort and conflicting
+   implementations.
+
+   **How to check:**
+   - Extract 3-5 key terms from the issue title and body (feature
+     names, tool names, data types, package names).
+   - Search open issues:
+     ```bash
+     gh issue list --repo <org/repo> --state open --search "<keywords>" --limit 15
+     ```
+   - For any promising matches, read the issue body:
+     ```bash
+     gh issue view <number> --repo <org/repo>
+     ```
+   - Assess whether the scope overlaps meaningfully (>30% of tasks
+     or the same core deliverable).
+
+   **Flag as HIGH if:**
+   - An open issue targets the same feature, dataset, or pipeline
+     with substantial overlap in deliverables
+   - An open issue is a superset that already includes this work
+     as a subtask
+
+   **Flag as MEDIUM if:**
+   - An open issue touches related code or data but with a clearly
+     different goal (mention it for awareness, not as a blocker)
+
+   **Recommend:** Link to the overlapping issue and suggest one of:
+   consolidate into the existing issue, explicitly scope-split with
+   cross-references, or close the duplicate.
+
 #### Ambiguity and placeholder checks
 
 9. **Vague language**: Scan the entire issue for adjectives and adverbs
