@@ -166,6 +166,29 @@ the EPIC doesn't reflect yet.
 
 ### Step 4: Build status display
 
+#### Step 4.0: Reconcile clone state with GitHub
+
+Before building the display, cross-check every issue/PR discovered in
+the clone scan against GitHub's current state:
+
+```bash
+# For each issue number found in clone .epic-status.json or branch names:
+gh issue view <N> --json state,stateReason -q '.state + " " + (.stateReason // "")'
+# For each PR found in open PR list or referenced by clones:
+gh pr view <N> --json state,mergedAt -q '.state'
+```
+
+Rules:
+- If an issue is CLOSED but a clone is still assigned → mark the clone
+  as **stale (issue closed)** and propose cleanup
+- If a PR is MERGED but the clone hasn't been reset → same
+- Never present an issue as "ready to spawn" or "needs action" without
+  confirming it's still OPEN on GitHub
+- **Never ask the user a question about an issue/PR status that you
+  could answer with a `gh` query** — poll first, then present facts
+
+#### Step 4.1: Build the display
+
 The dashboard is **branch/issue-centric**, not clone-centric. The user
 cares about what work is running and what's ready to spawn — not which
 clones are idle. Omit idle clones entirely.
