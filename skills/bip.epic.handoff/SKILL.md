@@ -73,27 +73,94 @@ Read `.epic-config.json` from the repo root.
 
 **Finding the config**: In clone mode, `.epic-config.json` is in each
 clone's repo root. In worktree mode, it's in the **main checkout**
-(not the worktree). If you can't find it:
+(the conductor's working directory, not the worktree). To find it:
 ```bash
 # Worktree mode: find the main checkout
-git worktree list | head -1 | awk '{print $1}'
-# Then read .epic-config.json from there
+MAIN_CHECKOUT=$(git worktree list | head -1 | awk '{print $1}')
+cat "$MAIN_CHECKOUT/.epic-config.json"
 ```
 
-Then follow the slot selection logic from `/bip.epic.spawn` Step 1:
-- **Clone mode**: find an idle clone (on `main`, clean worktree)
-- **Worktree mode**: create `issue-<N>` worktree
+Then select or create a slot:
 
-### Step 5: Compose prompt and spawn
+**Clone mode** (`local_worktrees` absent or false):
+```bash
+CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
+# Find an idle clone (on main, clean worktree)
+for name in $(jq -r '.clone_names[]' .epic-config.json); do
+  branch=$(git -C "$CLONE_ROOT/$name" branch --show-current 2>/dev/null)
+  [ "$branch" = "main" ] && echo "$name"
+done
+```
+Pick the first idle clone. If all are busy, offer to create a new
+clone using a name from `new_clone_names` in the config.
 
-Follow `/bip.epic.spawn` Steps 3-5 exactly:
-1. Read the new issue (`gh issue view <N>`)
-2. Compose the prompt (work instructions + ralph-loop + epic status
-   protocol) — use the full template from `/bip.epic.spawn` Step 4
-3. Write to `/tmp/spawn-<N>.txt`
-4. Launch via `bip spawn --prompt-file /tmp/spawn-<N>.txt`
+**Worktree mode** (`local_worktrees: true`):
+```bash
+CLONE_ROOT=$(jq -r .clone_root "$MAIN_CHECKOUT/.epic-config.json")
+SLOT="$CLONE_ROOT/issue-<N>"
+SLUG=$(gh issue view <N> --json title -q '.title' | tr '[:upper:]' '[:lower:]' | awk '{for(i=1;i<=4&&i<=NF;i++) printf "%s%s",$i,(i<4&&i<NF?"-":"")}')
 
-### Step 6: Clean up current slot (optional)
+if [ -d "$SLOT" ]; then
+  echo "Worktree exists — will resume"
+else
+  # Clean up leftover branches from previous attempts
+  git -C "$MAIN_CHECKOUT" branch --list "<N>-*" | tr -d ' ' | xargs -r git -C "$MAIN_CHECKOUT" branch -D
+  # Create worktree from the main checkout
+  git -C "$MAIN_CHECKOUT" worktree add "$SLOT" -b "<N>-$SLUG"
+fi
+```
+
+### Step 5: Prepare the slot
+
+**Clone mode**:
+```bash
+cd "$CLONE_ROOT/<clone-name>"
+git checkout main && git pull --ff-only origin main
+rm -f .epic-status.json .epic-worklog.md
+```
+
+**Worktree mode** — just clear stale status files:
+```bash
+rm -f "$SLOT/.epic-status.json" "$SLOT/.epic-worklog.md"
+```
+
+### Step 6: Compose prompt and spawn
+
+Follow `/bip.epic.spawn` Steps 3-4 to compose the prompt:
+1. Read the new issue: `gh issue view <N>`
+2. Compose the full prompt including:
+   - `/work-issue <N>` as the core instruction
+   - Ralph-loop invocation block
+   - EPIC status protocol (`.epic-status.json` fields, worklog format)
+   - Any phasing or gate criteria from the issue
+3. Use the **Write tool** to create `/tmp/spawn-<N>.txt` with the
+   full prompt (do NOT use shell redirection — complex prompts break
+   zsh expansion)
+
+Then launch with the correct flags for your mode:
+
+```bash
+CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
+
+# Clone mode: --name is NNN-clone (e.g. "281-cedar")
+bip spawn --prompt-file /tmp/spawn-<N>.txt \
+  --dir "$CLONE_ROOT/<clone-name>" \
+  --name "<N>-<clone-name>"
+
+# Worktree mode: --name is NNN-issue-NNN (e.g. "281-issue-281")
+bip spawn --prompt-file /tmp/spawn-<N>.txt \
+  --dir "$CLONE_ROOT/issue-<N>" \
+  --name "<N>-issue-<N>"
+```
+
+**IMPORTANT**: Always use `--prompt-file`, never `--prompt "$(cat ...)"`.
+Always use `--dir` and `--name` — without them the tmux window gets
+a wrong name and the session runs in the wrong directory.
+
+**Do NOT** use raw `tmux new-window` / `tmux send-keys` / `claude`.
+Always go through `bip spawn`.
+
+### Step 7: Clean up current slot (optional)
 
 If the current issue's PR is merged:
 - **Worktree mode**: the conductor will clean up on next poll
@@ -102,7 +169,7 @@ If the current issue's PR is merged:
 Don't force-remove your own worktree while you're in it — just let
 the conductor handle cleanup.
 
-### Step 7: Report
+### Step 8: Report
 
 ```
 ## Handoff Complete
