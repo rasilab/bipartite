@@ -73,7 +73,7 @@ Fields:
 
 ## Workflow
 
-### Step 0: Load config and memory
+### Step 1: Load config and memory
 
 ```bash
 cat .epic-config.json
@@ -98,7 +98,7 @@ Then create `.epic-config.json` with their answers and proceed.
 All subsequent steps use values from this config — never hardcode
 paths or clone names.
 
-### Step 0.5: Pull main
+### Step 2: Pull main
 
 ```bash
 git pull --ff-only origin main
@@ -106,16 +106,41 @@ git pull --ff-only origin main
 
 If this fails, report the problem and continue with stale state.
 
-### Step 1: Discover EPIC issues
+### Step 3: Gather issue and PR state from GitHub
+
+Start with the question: **what issues need work?**
 
 ```bash
+# EPIC issues (project-level tracking)
 gh issue list --search "EPIC in:title" --json number,title,body
+
+# All open issues (the work backlog)
+gh issue list --search "sort:updated-desc" --limit 20 --json number,title,state,labels
+
+# Open PRs (in-flight work nearing completion)
+gh pr list --json number,title,headRefName,state
+
+# Recently merged PRs (what landed since last check)
+gh pr list --search "is:pr is:merged sort:updated-desc" --limit 10 --json number,title,mergedAt
 ```
 
 Parse the **Status dashboard** section from each EPIC body to extract
 completed, active, and blocked items.
 
-### Step 2: Scan slots
+For every open issue and PR, verify its current state:
+```bash
+gh issue view <N> --json state,stateReason -q '.state + " " + (.stateReason // "")'
+gh pr view <N> --json state,mergedAt -q '.state'
+```
+
+**Never ask the user a question about an issue/PR status that you
+could answer with a `gh` query** — poll first, then present facts.
+
+### Step 4: Check clone capacity
+
+Scan clones/worktrees to answer "where can work run?"
+
+Check tmux windows: `tmux list-windows -F "#W"`
 
 Read `clone_root` and `local_worktrees` from `.epic-config.json`.
 
@@ -133,68 +158,37 @@ done
 **Worktree mode** (`local_worktrees: true`): discover via `git worktree list`:
 ```bash
 CLONE_ROOT=$(jq -r .clone_root .epic-config.json)
-# Find worktrees under clone_root (excludes the main checkout)
-find "$CLONE_ROOT" -maxdepth 1 -name 'issue-*' -type d | while read slot; do
-  git -C "$slot" log --oneline -1 2>/dev/null
-  git -C "$slot" status --porcelain 2>/dev/null | head -5
-  cat "$slot/.epic-status.json" 2>/dev/null
+find "$CLONE_ROOT" -maxdepth 1 -name 'issue-*' -type d | while read wt; do
+  git -C "$wt" log --oneline -1 2>/dev/null
+  git -C "$wt" status --porcelain 2>/dev/null | head -5
+  cat "$wt/.epic-status.json" 2>/dev/null
 done
 ```
 
-Check tmux windows: `tmux list-windows -F "#W"`
+For each clone/worktree, note which issue (if any) it's working on. Classify:
+- **occupied**: Has tmux window or fresh `.epic-status.json` (< 30 min)
+- **stale**: Assigned to an issue but no active session (no tmux, status > 30 min)
+- **available**: (clone mode) On `main`, clean worktree — (worktree mode) N/A, new worktrees are created on demand
 
-Classify each slot as:
-- **active**: Has tmux window or fresh `.epic-status.json` (< 30 min)
-- **assigned**: On non-main branch, no active session
-- **idle**: (clone mode) On `main`, clean worktree — (worktree mode) worktrees are created per-issue and removed when done, so no "idle" state exists
+### Step 5: Reconcile issues with clones
 
-### Step 3: Check GitHub activity
-
-```bash
-# Recently merged PRs
-gh pr list --search "is:pr is:merged sort:updated-desc" --limit 10 --json number,title,mergedAt
-
-# Open PRs
-gh pr list --json number,title,headRefName,state
-
-# Recent issues
-gh issue list --search "sort:updated-desc" --limit 10 --json number,title,state
-```
-
-Cross-reference with EPIC bodies — flag anything merged/closed that
-the EPIC doesn't reflect yet.
-
-### Step 4: Build status display
-
-#### Step 4.0: Reconcile clone state with GitHub
-
-Before building the display, cross-check every issue/PR discovered in
-the clone scan against GitHub's current state:
-
-```bash
-# For each issue number found in clone .epic-status.json or branch names:
-gh issue view <N> --json state,stateReason -q '.state + " " + (.stateReason // "")'
-# For each PR found in open PR list or referenced by clones:
-gh pr view <N> --json state,mergedAt -q '.state'
-```
-
-Rules:
-- If an issue is CLOSED but a clone is still assigned → mark the clone
-  as **stale (issue closed)** and propose cleanup
-- If a PR is MERGED but the clone hasn't been reset → same
+Cross-reference the two datasets:
+- If an issue is **CLOSED on GitHub** but a clone is still assigned → mark
+  it as stale and propose cleanup
+- If a PR is **MERGED** but the clone hasn't been reset → same
 - Never present an issue as "ready to spawn" or "needs action" without
   confirming it's still OPEN on GitHub
-- **Never ask the user a question about an issue/PR status that you
-  could answer with a `gh` query** — poll first, then present facts
+- Flag anything merged/closed that the EPIC doesn't reflect yet
 
-#### Step 4.1: Build the display
+### Step 6: Build status display
 
-The dashboard is **branch/issue-centric**, not clone-centric. The user
-cares about what work is running and what's ready to spawn — not which
-clones are idle. Omit idle clones entirely.
+The dashboard is **issue-centric**. The user cares about what work
+needs attention and what's ready to start — clones are parenthetical.
 
-**Section 1: Active work** — one entry per non-main branch, sorted by
-status (active → awaiting → needs-human → stale):
+**Recently merged** (last 48h): p705, p704, p703, p702, p647, p710, p711
+
+**Section 1: Active issues** — every open issue that has work in
+progress, sorted by status (active → awaiting → needs-human → stale):
 
 | Issue | Status | Clone | Summary |
 |-------|--------|-------|---------|
@@ -203,34 +197,31 @@ status (active → awaiting → needs-human → stale):
 | i310 | needs-human | fir | Architectural decision needed |
 | i589 | stale (4d) | cedar | Check if experiment finished |
 
-Include recently merged PRs (last 48h) as a compact list above the
-table so the user sees what landed:
-
-**Recently merged**: p705, p704, p703, p702, p647, p710, p711
-
-**Section 2: Ready to spawn** — issues not assigned to any clone,
+**Section 2: Ready to spawn** — open issues not assigned to any clone,
 not blocked, not dependent on in-flight work, ordered by priority.
 Check each candidate's `depends_on` field and any blocking context
 before listing. If an issue depends on an unmerged PR or unfinished
 experiment, it is NOT ready — omit it silently.
 
 - `i302` — Add retry logic to batch pipeline
-- *(N idle clones available)*
+- `i315` — Refactor scoring module
+
+*(N clones available)*
 
 This two-section layout is the primary loop: what's running, what's
 next. Keep it tight — the user should be able to scan in 10 seconds.
 
-### Step 5: Propose next action
+### Step 7: Propose next action
 
 First, do housekeeping automatically (no need to ask):
 - **Update EPIC bodies** if anything merged/closed since last update
-- **Clean up stale slots**:
+- **Clean up stale clones**:
   - *Clone mode*: (no tmux window, status > 30 min): `git checkout main && git pull --ff-only`, clear `.epic-status.json`
   - *Worktree mode*: (no tmux window, status > 30 min, OR PR merged): `git worktree remove --force $CLONE_ROOT/issue-N && git branch -d <branch>`, nothing to reset
 
-Then propose spawning work for ready issues on idle clones:
+Then propose spawning work for ready issues:
 
-> "Shall I spawn `i302` and `i310`? `oak` and `birch` are idle."
+> "Ready to spawn: `i302` (retry logic) and `i315` (scoring refactor). 2 clones available. Shall I spawn them?"
 
 Wait for user confirmation, then run `/bip.epic.spawn` (do NOT improvise tmux/claude commands).
 
