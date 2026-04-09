@@ -1,0 +1,68 @@
+{
+  "config": {
+    "id": "test-export",
+    "label": "Test Better BibTeX JSON Export"
+  },
+  "collections": [],
+  "items": [
+    {
+      "itemKey": "GU8DNUPB",
+      "itemType": "journalArticle",
+      "citationKey": "Matreyek2020",
+      "title": "Multiplex assessment of protein variant abundance by massively parallel sequencing",
+      "abstractNote": "We describe VAMP-seq, a method for measuring protein variant abundance.",
+      "DOI": "10.1038/s41588-018-0122-z",
+      "date": "2020-01-10",
+      "publicationTitle": "Nature Genetics",
+      "extra": "PMID: 29785012\nPMCID: PMC6181777",
+      "creators": [
+        {"firstName": "Kenneth A", "lastName": "Matreyek", "creatorType": "author"},
+        {"firstName": "Lea M", "lastName": "Starita", "creatorType": "author"},
+        {"firstName": "Douglas M", "lastName": "Fowler", "creatorType": "editor"}
+      ],
+      "attachments": [
+        {
+          "key": "N7ZF7T44",
+          "filename": "Matreyek et al. 2020 - Multiplex assessment.pdf",
+          "contentType": "application/pdf",
+          "localPath": "/home/user/Zotero/storage/N7ZF7T44/Matreyek et al. 2020 - Multiplex assessment.pdf"
+        },
+        {
+          "key": "XY9AB123",
+          "filename": "Supplement.pdf",
+          "contentType": "application/pdf",
+          "localPath": "/home/user/Zotero/storage/XY9AB123/Supplement.pdf"
+        }
+      ]
+    },
+    {
+      "itemKey": "ABC12345",
+      "itemType": "conferencePaper",
+      "citationKey": "",
+      "title": "Deep learning for protein engineering",
+      "abstractNote": "",
+      "DOI": "",
+      "date": "June 2019",
+      "publicationTitle": "",
+      "proceedingsTitle": "NeurIPS 2019",
+      "extra": "arXiv: 1906.07748",
+      "creators": [
+        {"firstName": "Kevin", "lastName": "Yang", "creatorType": "author"}
+      ],
+      "attachments": []
+    },
+    {
+      "itemKey": "NOTE0001",
+      "itemType": "note",
+      "citationKey": "",
+      "title": "Research notes",
+      "abstractNote": "",
+      "DOI": "",
+      "date": "",
+      "publicationTitle": "",
+      "extra": "",
+      "creators": [],
+      "attachments": []
+    }
+  ]
+}
