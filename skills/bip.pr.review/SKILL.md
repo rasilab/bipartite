@@ -92,6 +92,37 @@ Flag anything suspicious for user confirmation before proceeding.
 **For all projects with code changes:**
 - Launch `clean-code-reviewer` agent on modified source files (not tests)
 
+### Step 4.5: Scientific Conclusion Skeptic (conditional)
+
+**Always run this detection step.** Examine the PR title, body, and diff for signals that the PR reports a scientific conclusion or experimental result:
+
+- Benchmark results or comparison tables
+- Win/loss rates, accuracy numbers, or performance metrics
+- Language like "outperforms", "worse than", "fails to", "never beats", "always prefers"
+- Claims about method effectiveness, algorithmic limitations, or model comparisons
+- Surprising or strong negative results (e.g., 0% or 100% rates)
+
+**If any scientific conclusion is detected**, launch the `surprising-conclusion-skeptic` agent (Opus model) with this prompt:
+
+```
+Review PR #<number> on branch <branch> for scientific credibility.
+
+Claim: <summarize the scientific conclusion from the PR title/body>
+
+The PR diff is at: git diff origin/<base>...HEAD
+
+Work through your full checklist: check for bugs, unfair comparisons,
+implausible effect sizes, contradictions with established results, and
+unverified upstream assumptions. Read the code that produced the result,
+not just the description.
+
+Report your findings with Claim / Confidence / Concerns / Recommended Checks / Verdict.
+```
+
+This step runs **in parallel** with the agent reviews in Step 4. Do not wait for it to complete before proceeding.
+
+**If no scientific conclusion is detected**, skip this step and note "No scientific claims detected — skeptic review skipped" in the final report.
+
 ### Step 5: Run Automated Checks
 
 Detect and run available quality tools:
@@ -192,6 +223,9 @@ Present a checklist summary:
 ### Agent Reviews
 - [ ] Snakemake review: [findings or ✓]
 - [ ] Code review: [findings or ✓]
+
+### Scientific Conclusion Skeptic
+- [ ] Skeptic review: [verdict or "No scientific claims detected — skipped"]
 
 ### Large Files / Cruft
 - [x] No suspicious files found
