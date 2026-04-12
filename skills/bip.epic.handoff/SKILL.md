@@ -91,8 +91,12 @@ for name in $(jq -r '.clone_names[]' .epic-config.json); do
   [ "$branch" = "main" ] && echo "$name"
 done
 ```
-Pick the first idle clone. If all are busy, offer to create a new
-clone using a name from `new_clone_names` in the config.
+Pick the first idle clone **that is not the current clone**. The
+handoff should move work to a different slot so the current session
+can wind down cleanly. If all other clones are busy, use the current
+clone as a last resort (after confirming with the user). If all clones
+including current are busy, offer to create a new clone using a name
+from `new_clone_names` in the config.
 
 **Worktree mode** (`local_worktrees: true`):
 ```bash
@@ -114,10 +118,15 @@ fi
 
 **Clone mode**:
 ```bash
+SLUG=$(gh issue view <N> --json title -q '.title' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 ]//g' | awk '{for(i=1;i<=4&&i<=NF;i++) printf "%s%s",$i,(i<4&&i<NF?"-":"")}')
 cd "$CLONE_ROOT/<clone-name>"
 git checkout main && git pull --ff-only origin main
+git checkout -b "<N>-$SLUG"
 rm -f .epic-status.json .epic-worklog.md
 ```
+
+The branch **must** be created before spawning. If the spawn starts
+on `main`, any uncommitted work lands on `main` and is hard to rescue.
 
 **Worktree mode** — just clear stale status files:
 ```bash
@@ -129,6 +138,7 @@ rm -f "$SLOT/.epic-status.json" "$SLOT/.epic-worklog.md"
 Follow `/bip.epic.spawn` Steps 3-4 to compose the prompt:
 1. Read the new issue: `gh issue view <N>`
 2. Compose the full prompt including:
+   - A branch guard as the **first line**: `IMPORTANT: Before doing any work, verify you are on branch <N>-<slug> (run "git branch --show-current"). If you are on main, run "git checkout -b <N>-<slug>" first. Never commit directly to main.`
    - `/bip.issue.work <N>` as the core instruction
    - Ralph-loop invocation block
    - EPIC status protocol (`.epic-status.json` fields, worklog format)
